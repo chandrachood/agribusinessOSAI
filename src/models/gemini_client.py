@@ -1,7 +1,8 @@
 import os
 import asyncio
 import logging
-from typing import AsyncGenerator
+from typing import Any, AsyncGenerator
+from urllib.parse import urlparse
 
 from google.adk.agents import LlmAgent
 from google import genai
@@ -56,6 +57,101 @@ class GeminiRunner:
 
         self.client = genai.Client(api_key=api_key)
 
+    @staticmethod
+    def _normalize_url(url: str) -> str:
+        parsed = urlparse((url or "").strip())
+        if not parsed.scheme or not parsed.netloc:
+            return ""
+        clean = f"{parsed.scheme}://{parsed.netloc}{parsed.path}"
+        if parsed.query:
+            clean += f"?{parsed.query}"
+        return clean
+
+    @staticmethod
+    def _extract_text(response: Any) -> str:
+        text = (getattr(response, "text", "") or "").strip()
+        if text:
+            return text
+
+        for candidate in getattr(response, "candidates", []) or []:
+            content = getattr(candidate, "content", None)
+            for part in getattr(content, "parts", []) or []:
+                chunk = (getattr(part, "text", "") or "").strip()
+                if chunk:
+                    return chunk
+        return ""
+
+    def _extract_sources(self, response: Any) -> list[dict[str, str]]:
+        seen: set[str] = set()
+        sources: list[dict[str, str]] = []
+
+        for candidate in getattr(response, "candidates", []) or []:
+            grounding = getattr(candidate, "grounding_metadata", None)
+            chunks = getattr(grounding, "grounding_chunks", None) or []
+            for chunk in chunks:
+                web = getattr(chunk, "web", None)
+                if not web:
+                    continue
+
+                uri = self._normalize_url(getattr(web, "uri", "") or "")
+                if not uri or uri in seen:
+                    continue
+
+                seen.add(uri)
+                sources.append(
+                    {
+                        "title": (getattr(web, "title", "") or "").strip() or uri,
+                        "url": uri,
+                        "domain": (getattr(web, "domain", "") or "").strip(),
+                    }
+                )
+
+        return sources
+
+    async def run_once(
+        self,
+        user_id: str,
+        session_id: str,
+        new_message: types.Content,
+        tools: list[types.Tool] | None = None,
+        temperature: float | None = None,
+    ) -> tuple[str, list[dict[str, str]]]:
+        system_instruction = self.agent.instruction or ""
+
+        user_text = ""
+        if hasattr(new_message, "parts") and new_message.parts:
+            user_text = new_message.parts[0].text
+        elif isinstance(new_message, str):
+            user_text = new_message
+
+        config_kwargs = {
+            "system_instruction": system_instruction,
+        }
+        if tools:
+            config_kwargs["tools"] = tools
+        if temperature is not None:
+            config_kwargs["temperature"] = temperature
+        config = types.GenerateContentConfig(**config_kwargs)
+
+        contents = [
+            types.Content(
+                role="user",
+                parts=[types.Part.from_text(text=user_text)],
+            )
+        ]
+
+        try:
+            response = await self.client.aio.models.generate_content(
+                model=self.agent.model,
+                contents=contents,
+                config=config,
+            )
+            text = self._extract_text(response)
+            sources = self._extract_sources(response)
+            return text, sources
+        finally:
+            await self.aclose()
+
     async def aclose(self) -> None:
         """Close sync + async transports to avoid pending close tasks on loop shutdown."""
         if not self.client:
@@ -80,7 +176,9 @@ class GeminiRunner:
         self,
         user_id: str,
         session_id: str,
-        new_message: types.Content, # Expecting types.Content or proper structure
+        new_message: types.Content,
+        tools: list[types.Tool] | None = None,
+        temperature: float | None = None,
     ) -> AsyncGenerator[GeminiEvent, None]:
         system_instruction = self.agent.instruction or ""
         
@@ -92,11 +190,15 @@ class GeminiRunner:
             user_text = new_message
 
         # Config per user request
-        config = types.GenerateContentConfig(
-            system_instruction=system_instruction,
-            # metrics_config=None, # Removed as it causes ValidationError
-            # thinking_config=types.ThinkingConfig(thinking_budget=0), # As requested
-        )
+        config_kwargs = {
+            "system_instruction": system_instruction,
+        }
+        if tools:
+            config_kwargs["tools"] = tools
+        if temperature is not None:
+            config_kwargs["temperature"] = temperature
+
+        config = types.GenerateContentConfig(**config_kwargs)
 
         contents = [
             types.Content(

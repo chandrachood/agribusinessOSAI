@@ -10,7 +10,7 @@ LANG_MAP = {
 }
 
 
-def _format_history(history: list[dict[str, Any]] | None, max_turns: int = 8) -> str:
+def _format_history(history: list[dict[str, Any]] | None, max_turns: int = 24) -> str:
     if not history:
         return "No prior Q&A."
 
@@ -44,6 +44,7 @@ Rules:
 3. If details are missing in the report, clearly say the report does not contain that detail.
 4. Keep the response practical and concise.
 5. Use bullet points where useful.
+6. Treat Previous Q&A as conversation memory; resolve references like "that", "this", or "previous option" using prior turns.
 """
 
     agent = GeminiAgent(name="report_followup", instruction=instruction)

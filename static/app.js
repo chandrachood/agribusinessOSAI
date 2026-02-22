@@ -8,6 +8,7 @@ const resetBtn = document.getElementById('reset-btn');
 const loadingText = document.getElementById('loading-text');
 
 let currentJobId = null;
+let currentTraceUrl = "";
 let latestReportMarkdown = "";
 let followupHistory = [];
 let followupBusy = false;
@@ -135,6 +136,10 @@ async function sendMessage() {
 
         if (data.job_id) {
             currentJobId = data.job_id;
+            currentTraceUrl = data.trace_url || "";
+            if (currentTraceUrl) {
+                console.info("Trace URL:", currentTraceUrl);
+            }
             startStream(currentJobId);
         } else {
             showError("Failed to start job.");
@@ -188,6 +193,67 @@ function handleStreamEvent(data, eventSource) {
     }
 }
 
+function makeLinksClickable(container) {
+    if (!container) return;
+    container.querySelectorAll('a[href]').forEach((a) => {
+        a.setAttribute('target', '_blank');
+        a.setAttribute('rel', 'noopener noreferrer');
+    });
+}
+
+function stylizeCitationMarkers(container) {
+    if (!container) return;
+
+    const skipTags = new Set(['SCRIPT', 'STYLE', 'CODE', 'PRE', 'A', 'TEXTAREA']);
+    const matcher = /\[\d+\]/;
+
+    const walker = document.createTreeWalker(
+        container,
+        NodeFilter.SHOW_TEXT,
+        {
+            acceptNode(node) {
+                const parent = node.parentElement;
+                if (!parent) return NodeFilter.FILTER_REJECT;
+                if (parent.classList && parent.classList.contains('citation-badge')) {
+                    return NodeFilter.FILTER_REJECT;
+                }
+                if (skipTags.has(parent.tagName)) return NodeFilter.FILTER_REJECT;
+                return matcher.test(node.nodeValue || '')
+                    ? NodeFilter.FILTER_ACCEPT
+                    : NodeFilter.FILTER_REJECT;
+            }
+        }
+    );
+
+    const textNodes = [];
+    while (walker.nextNode()) {
+        textNodes.push(walker.currentNode);
+    }
+
+    textNodes.forEach((node) => {
+        const text = node.nodeValue || '';
+        const parts = text.split(/(\[\d+\])/g);
+        if (parts.length <= 1) return;
+
+        const fragment = document.createDocumentFragment();
+        parts.forEach((part) => {
+            if (!part) return;
+            if (/^\[\d+\]$/.test(part)) {
+                const sup = document.createElement('sup');
+                sup.className = 'citation-badge';
+                sup.textContent = part;
+                fragment.appendChild(sup);
+            } else {
+                fragment.appendChild(document.createTextNode(part));
+            }
+        });
+
+        if (node.parentNode) {
+            node.parentNode.replaceChild(fragment, node);
+        }
+    });
+}
+
 function renderFinalReport(markdownText) {
     latestReportMarkdown = markdownText;
     followupHistory = [];
@@ -200,6 +266,8 @@ function renderFinalReport(markdownText) {
     const reportDiv = document.createElement('div');
     reportDiv.className = 'report-section markdown-body';
     reportDiv.innerHTML = marked.parse(markdownText);
+    makeLinksClickable(reportDiv);
+    stylizeCitationMarkers(reportDiv);
 
     dashboardContent.appendChild(reportDiv);
     dashboardContent.appendChild(buildFollowupPanel());
@@ -280,6 +348,8 @@ function addFollowupMessage(text, sender, asMarkdown = false) {
 
     if (asMarkdown) {
         div.innerHTML = marked.parse(text);
+        makeLinksClickable(div);
+        stylizeCitationMarkers(div);
     } else {
         div.textContent = text;
     }

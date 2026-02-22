@@ -3,8 +3,10 @@ import asyncio
 import json
 import uuid
 import gc
+from datetime import datetime, timezone
 from queue import Queue, Empty
-from threading import Thread
+from threading import Thread, Lock
+from time import perf_counter
 from urllib.parse import parse_qs, urlparse
 from flask import Flask, request, jsonify, Response, stream_with_context, render_template, redirect, url_for
 from dotenv import load_dotenv
@@ -274,6 +276,40 @@ app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-key')
 # Simple in-memory job store for MVP
 JOBS = {}
 JOB_QUEUES = {}
+TRACE_LOCK = Lock()
+TRACE_MAX_EVENTS = int(os.environ.get("TRACE_MAX_EVENTS", "800"))
+TRACE_INCLUDE_INPUT_PREVIEW = os.environ.get("TRACE_INCLUDE_INPUT_PREVIEW", "0") == "1"
+
+
+def _utc_now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+def _safe_excerpt(text: str, max_len: int = 220) -> str:
+    value = (text or "").replace("\n", " ").strip()
+    return value[:max_len] + ("..." if len(value) > max_len else "")
+
+
+def _trace(job_id: str, event: str, **fields):
+    record = {
+        "ts": _utc_now_iso(),
+        "event": event,
+        **fields,
+    }
+    with TRACE_LOCK:
+        job = JOBS.get(job_id)
+        if not job:
+            return
+        traces = job.setdefault("trace", [])
+        traces.append(record)
+        if len(traces) > TRACE_MAX_EVENTS:
+            del traces[:-TRACE_MAX_EVENTS]
+    app.logger.info(
+        "trace job=%s event=%s fields=%s",
+        job_id,
+        event,
+        json.dumps(fields, ensure_ascii=False, default=str),
+    )
 
 def _graceful_close_loop(loop: asyncio.AbstractEventLoop):
     """Drain pending async cleanup tasks before closing the thread-local loop."""
@@ -302,13 +338,40 @@ def _graceful_close_loop(loop: asyncio.AbstractEventLoop):
 
 def _run_job_background(job_id, user_input, language='en'):
     q = JOB_QUEUES[job_id]
-    
+    started_at = perf_counter()
+    step_started: dict[str, float] = {}
+
     def progress_cb(data):
         q.put(data)
+        step = str(data.get("step", "")).strip()
+        status = str(data.get("status", "")).strip()
+        if not step:
+            return
+
+        if status == "running":
+            step_started[step] = perf_counter()
+            _trace(job_id, "agent_step_running", step=step)
+            return
+
+        if status == "completed":
+            started = step_started.pop(step, None)
+            duration_ms = round((perf_counter() - started) * 1000, 2) if started else None
+            output_chars = len(str(data.get("output", "") or ""))
+            _trace(
+                job_id,
+                "agent_step_completed",
+                step=step,
+                duration_ms=duration_ms,
+                output_chars=output_chars,
+            )
+            return
+
+        _trace(job_id, "agent_step_update", step=step, status=status)
         
     # Create a new event loop for this thread
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
+    _trace(job_id, "job_runner_started", language=language, input_chars=len(user_input or ""))
 
     try:
         result = loop.run_until_complete(
@@ -317,18 +380,68 @@ def _run_job_background(job_id, user_input, language='en'):
         JOBS[job_id]["status"] = "completed"
         JOBS[job_id]["report"] = result
         q.put({"event": "complete", "result": result})
+        _trace(
+            job_id,
+            "job_runner_completed",
+            duration_ms=round((perf_counter() - started_at) * 1000, 2),
+            report_chars=len(result or ""),
+        )
     except Exception as e:
         import traceback
         traceback.print_exc()
         JOBS[job_id]["status"] = "failed"
         JOBS[job_id]["error"] = str(e)
         q.put({"event": "error", "message": str(e)})
+        _trace(
+            job_id,
+            "job_runner_failed",
+            duration_ms=round((perf_counter() - started_at) * 1000, 2),
+            error=str(e),
+        )
     finally:
         _graceful_close_loop(loop)
 
 @app.route('/health')
 def health():
     return jsonify({"status": "ok", "model": os.environ.get("GEMINI_MODEL_ID")})
+
+@app.route('/api/trace/<job_id>')
+def get_trace(job_id):
+    job = JOBS.get(job_id)
+    if not job:
+        return jsonify({"error": "Job not found"}), 404
+
+    limit_raw = request.args.get("limit", "300")
+    try:
+        limit = int(limit_raw)
+    except ValueError:
+        limit = 300
+    limit = max(1, min(limit, 2000))
+
+    all_events = job.get("trace", [])
+    events = all_events[-limit:]
+
+    step_metrics = []
+    for event in all_events:
+        if event.get("event") == "agent_step_completed":
+            step_metrics.append(
+                {
+                    "step": event.get("step"),
+                    "duration_ms": event.get("duration_ms"),
+                    "output_chars": event.get("output_chars"),
+                }
+            )
+
+    return jsonify(
+        {
+            "job_id": job_id,
+            "status": job.get("status"),
+            "error": job.get("error"),
+            "event_count": len(all_events),
+            "events": events,
+            "step_metrics": step_metrics,
+        }
+    )
 
 @app.route('/api/plan', methods=['POST'])
 def create_plan():
@@ -341,13 +454,20 @@ def create_plan():
         
     job_id = str(uuid.uuid4())
     JOB_QUEUES[job_id] = Queue()
-    JOBS[job_id] = {"status": "started", "report": None, "followups": []}
+    JOBS[job_id] = {"status": "started", "report": None, "followups": [], "trace": []}
+    trace_fields = {
+        "language": language,
+        "input_chars": len(user_input),
+    }
+    if TRACE_INCLUDE_INPUT_PREVIEW:
+        trace_fields["input_preview"] = _safe_excerpt(user_input)
+    _trace(job_id, "job_created", **trace_fields)
     
     # Start background thread
     t = Thread(target=_run_job_background, args=(job_id, user_input, language))
     t.start()
     
-    return jsonify({"job_id": job_id})
+    return jsonify({"job_id": job_id, "trace_url": f"/api/trace/{job_id}"})
 
 @app.route('/api/plan/<job_id>/stream')
 def stream_plan(job_id):
@@ -357,32 +477,39 @@ def stream_plan(job_id):
     q = JOB_QUEUES[job_id]
     
     def generate():
+        _trace(job_id, "stream_connected")
         print(f"DEBUG: Starting stream for job {job_id}")
-        while True:
-            try:
-                # Wait for data
-                data = q.get(timeout=60) # 1 min timeout for keepalive
-                
-                if data.get("step"):
-                    step_name = data.get("step")
-                    status = data.get("status")
-                    print(f"DEBUG: Agent Step: {step_name} [{status}]")
-                
-                yield f"data: {json.dumps(data)}\n\n"
-                
-                if data.get("event") in ["complete", "error"]:
-                    print(f"DEBUG: Job {job_id} finished with {data.get('event')}")
+        try:
+            while True:
+                try:
+                    # Wait for data
+                    data = q.get(timeout=60) # 1 min timeout for keepalive
+                    
+                    if data.get("step"):
+                        step_name = data.get("step")
+                        status = data.get("status")
+                        print(f"DEBUG: Agent Step: {step_name} [{status}]")
+                    
+                    yield f"data: {json.dumps(data)}\n\n"
+                    
+                    if data.get("event") in ["complete", "error"]:
+                        terminal_event = str(data.get("event"))
+                        _trace(job_id, "stream_terminal_event", event_type=terminal_event)
+                        print(f"DEBUG: Job {job_id} finished with {terminal_event}")
+                        break
+                except Empty:
+                    print(f"DEBUG: Timeout waiting for data for {job_id}, sending keep-alive")
+                    yield ": keep-alive\n\n"
+                except Exception as e:
+                    print(f"DEBUG: Generator error for {job_id}: {e}")
+                    import traceback
+                    traceback.print_exc()
+                    _trace(job_id, "stream_generator_error", error=str(e))
+                    # Try to send error to client
+                    yield f"data: {json.dumps({'event': 'error', 'message': 'Server generator error: ' + str(e)})}\n\n"
                     break
-            except Empty:
-                print(f"DEBUG: Timeout waiting for data for {job_id}, sending keep-alive")
-                yield ": keep-alive\n\n"
-            except Exception as e:
-                print(f"DEBUG: Generator error for {job_id}: {e}")
-                import traceback
-                traceback.print_exc()
-                # Try to send error to client
-                yield f"data: {json.dumps({'event': 'error', 'message': 'Server generator error: ' + str(e)})}\n\n"
-                break
+        finally:
+            _trace(job_id, "stream_disconnected")
     
     return Response(stream_with_context(generate()), mimetype='text/event-stream')
 
@@ -393,7 +520,7 @@ def followup_question():
     job_id = str(data.get('job_id', '')).strip()
     question = str(data.get('question', '')).strip()
     language = str(data.get('language', 'en')).strip() or 'en'
-    history = data.get('history') if isinstance(data.get('history'), list) else []
+    incoming_history = data.get('history') if isinstance(data.get('history'), list) else []
 
     if not job_id:
         return jsonify({"error": "job_id is required"}), 400
@@ -406,6 +533,43 @@ def followup_question():
     if not job.get("report"):
         return jsonify({"error": "Report is not ready for this job yet"}), 409
 
+    # Build durable history from server-side memory first.
+    server_history = []
+    for item in job.get("followups", []):
+        q = str(item.get("question", "")).strip()
+        a = str(item.get("answer", "")).strip()
+        if q:
+            server_history.append({"role": "user", "content": q})
+        if a:
+            server_history.append({"role": "assistant", "content": a})
+
+    # Merge client + server history, de-duplicate exact role/content pairs, keep recency.
+    merged_history = []
+    seen_pairs = set()
+    for turn in server_history + incoming_history:
+        if not isinstance(turn, dict):
+            continue
+        role = str(turn.get("role", "")).strip().lower()
+        content = str(turn.get("content", "")).strip()
+        if role not in {"user", "assistant"} or not content:
+            continue
+        pair = (role, content)
+        if pair in seen_pairs:
+            continue
+        seen_pairs.add(pair)
+        merged_history.append({"role": role, "content": content})
+
+    # Keep a larger but bounded memory window.
+    merged_history = merged_history[-40:]
+    _trace(
+        job_id,
+        "followup_received",
+        language=language,
+        question_chars=len(question),
+        client_history_turns=len(incoming_history),
+        merged_history_turns=len(merged_history),
+    )
+
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
 
@@ -415,16 +579,18 @@ def followup_question():
                 report_markdown=job["report"],
                 question=question,
                 language=language,
-                history=history,
+                history=merged_history,
             )
         )
         job.setdefault("followups", []).append(
             {"question": question, "answer": answer, "language": language}
         )
+        _trace(job_id, "followup_answered", answer_chars=len(answer))
         return jsonify({"answer": answer})
     except Exception as e:
         import traceback
         traceback.print_exc()
+        _trace(job_id, "followup_failed", error=str(e))
         return jsonify({"error": str(e)}), 500
     finally:
         _graceful_close_loop(loop)

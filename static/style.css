@@ -356,6 +356,29 @@ body {
     color: var(--primary-green);
 }
 
+.markdown-body a {
+    color: #0b3f9e;
+    text-decoration: underline;
+    overflow-wrap: anywhere;
+}
+
+.citation-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 2px;
+    padding: 0 5px;
+    border: 1px solid rgba(11, 63, 158, 0.35);
+    border-radius: 999px;
+    background: #eef4ff;
+    color: #0b3f9e;
+    font-size: 0.62em;
+    font-weight: 700;
+    line-height: 1.2;
+    vertical-align: super;
+    text-decoration: none;
+}
+
 /* LOADER */
 .loader-container {
     text-align: center;
