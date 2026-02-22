@@ -1,0 +1,10 @@
+# Agri startup reference cards
+# Format:
+# Startup Name | Leverage | Description | URL
+# You can also omit Description or URL.
+
+DeHaat | Full-stack farmer platform | Integrates input supply, advisory, and market linkage for smallholders. | https://www.dehaat.com/
+Ninjacart | Supply chain and distribution | Uses tech-enabled farm-to-retail logistics to reduce middle-layer inefficiency. | https://www.ninjacart.com/
+CropIn | Farm intelligence and data | Leverages digital farm records and analytics for planning, compliance, and traceability. | https://www.cropin.com/
+AgNext | Quality assessment with AI | Applies computer vision and data science for objective grading and quality checks. | https://agnext.com/
+Gramophone | Advisory plus input commerce | Combines localized crop advisory with input recommendations and procurement support. | https://gramophone.in/

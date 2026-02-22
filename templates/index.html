@@ -1,0 +1,178 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#2E7D32">
+    <title>AgriBusiness OS</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;600&family=Noto+Sans+Malayalam:wght@400;600&family=Outfit:wght@300;400;600&display=swap"
+        rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="{{ url_for('static', filename='locales.js') }}"></script>
+</head>
+
+<body class="resource-page">
+
+    <div class="app-container">
+        <header class="app-header">
+            <div class="header-left">
+                <a class="header-nav-btn active" href="/" data-i18n="planner_btn" title="Planner">
+                    Planner
+                </a>
+                <a class="header-nav-btn" href="/videos" data-i18n="video_library_btn" title="Video Library">
+                    Videos
+                </a>
+                <a class="header-nav-btn" href="/startups" data-i18n="startup_library_btn" title="Startup References">
+                    Startups
+                </a>
+                <a class="header-nav-btn" href="/policies" data-i18n="policy_finder_btn" title="Government Schemes">
+                    Schemes
+                </a>
+                <div class="logo" data-i18n="app_title">&#127793; AgriBusiness OS</div>
+            </div>
+            <div class="header-right">
+                <select id="language-selector" class="lang-select">
+                    <option value="en">English</option>
+                    <option value="hi">Hindi</option>
+                    <option value="ml">Malayalam</option>
+                </select>
+                <div class="status-indicator" id="status-indicator"></div>
+            </div>
+        </header>
+
+        <main class="chat-view planner-view" id="chat-view">
+            <div class="chat-history" id="chat-history">
+                <div class="message bot-message">
+                    <span data-i18n="greeting_1">&#128075; Namaste! I am your AI Agri-Business Partner.</span><br><br>
+                    <span data-i18n="greeting_2">Tell me about your farm (Location, Soil, Water, Budget) and I will
+                        build a complete business plan for you.</span>
+                </div>
+
+                <div class="guided-options">
+                    <div class="chip-category">
+                        <span class="category-label" data-i18n="cat_location">Location</span>
+                        <div class="chips-row">
+                            <button class="option-chip" data-value="Kerala" data-i18n="Kerala">Kerala</button>
+                            <button class="option-chip" data-value="Karnataka" data-i18n="Karnataka">Karnataka</button>
+                            <button class="option-chip" data-value="Tamil Nadu" data-i18n="Tamil Nadu">Tamil Nadu</button>
+                            <button class="option-chip" data-value="Uttar Pradesh" data-i18n="Uttar Pradesh">Uttar Pradesh</button>
+                            <input type="text" class="custom-chip-input" placeholder="District, State..."
+                                aria-label="Custom Location">
+                        </div>
+                    </div>
+
+                    <div class="chip-category">
+                        <span class="category-label" data-i18n="cat_land">Land Size</span>
+                        <div class="chips-row">
+                            <button class="option-chip" data-value="1 Acre" data-i18n="1 Acre">1 Acre</button>
+                            <button class="option-chip" data-value="2 Acres" data-i18n="2 Acres">2 Acres</button>
+                            <button class="option-chip" data-value="5 Acres" data-i18n="5 Acres">5 Acres</button>
+                            <button class="option-chip" data-value="10 Acres" data-i18n="10 Acres">10 Acres</button>
+                            <input type="text" class="custom-chip-input" placeholder="Other size..."
+                                aria-label="Custom Land Size">
+                        </div>
+                    </div>
+
+                    <div class="chip-category">
+                        <span class="category-label" data-i18n="cat_soil">Soil Type</span>
+                        <div class="chips-row">
+                            <button class="option-chip" data-value="Black Cotton Soil" data-i18n="Black Cotton Soil">Black Cotton</button>
+                            <button class="option-chip" data-value="Red Soil" data-i18n="Red Soil">Red Soil</button>
+                            <button class="option-chip" data-value="Loamy Soil" data-i18n="Loamy Soil">Loamy</button>
+                            <button class="option-chip" data-value="Sandy Soil" data-i18n="Sandy Soil">Sandy</button>
+                            <input type="text" class="custom-chip-input" placeholder="Other soil..."
+                                aria-label="Custom Soil Type">
+                        </div>
+                    </div>
+
+                    <div class="chip-category">
+                        <span class="category-label" data-i18n="cat_water">Water Source</span>
+                        <div class="chips-row">
+                            <button class="option-chip" data-value="Borewell" data-i18n="Borewell">Borewell</button>
+                            <button class="option-chip" data-value="Canal Irrigation" data-i18n="Canal Irrigation">Canal</button>
+                            <button class="option-chip" data-value="Rainfed" data-i18n="Rainfed">Rainfed</button>
+                            <button class="option-chip" data-value="Drip Irrigation" data-i18n="Drip Irrigation">Drip</button>
+                            <input type="text" class="custom-chip-input" placeholder="Other water..."
+                                aria-label="Custom Water Source">
+                        </div>
+                    </div>
+
+                    <div class="chip-category">
+                        <span class="category-label" data-i18n="cat_budget">Budget</span>
+                        <div class="chips-row">
+                            <button class="option-chip" data-value="&#8377;50k Budget" data-i18n="budget_50k">&#8377;50k</button>
+                            <button class="option-chip" data-value="&#8377;1 Lakh Budget" data-i18n="budget_1_lakh">&#8377;1 Lakh</button>
+                            <button class="option-chip" data-value="&#8377;5 Lakhs Budget" data-i18n="budget_5_lakhs">&#8377;5 Lakhs</button>
+                            <input type="text" class="custom-chip-input" placeholder="Other budget..."
+                                aria-label="Custom Budget">
+                        </div>
+                    </div>
+
+                    <div class="chip-category">
+                        <span class="category-label" data-i18n="cat_experience">Farming Experience</span>
+                        <div class="chips-row">
+                            <button class="option-chip" data-value="Beginner" data-i18n="Beginner">Beginner</button>
+                            <button class="option-chip" data-value="5+ Years" data-i18n="5+ Years">5+ Years</button>
+                            <button class="option-chip" data-value="Expert (10+ Years)" data-i18n="Expert">Expert</button>
+                        </div>
+                    </div>
+
+                    <div class="chip-category">
+                        <span class="category-label" data-i18n="cat_machinery">Machinery Available</span>
+                        <div class="chips-row">
+                            <button class="option-chip" data-value="No Machinery" data-i18n="None">None</button>
+                            <button class="option-chip" data-value="Tractor" data-i18n="Tractor">Tractor</button>
+                            <button class="option-chip" data-value="Irrigation Pump" data-i18n="Pump">Pump</button>
+                            <input type="text" class="custom-chip-input" placeholder="Other tools..."
+                                aria-label="Custom Machinery">
+                        </div>
+                    </div>
+
+                    <div class="chip-category">
+                        <span class="category-label" data-i18n="cat_prev_crops">Previous Crops</span>
+                        <div class="chips-row">
+                            <button class="option-chip" data-value="None (New Farm)" data-i18n="None/New">None</button>
+                            <button class="option-chip" data-value="Paddy" data-i18n="Paddy">Paddy</button>
+                            <button class="option-chip" data-value="Wheat" data-i18n="Wheat">Wheat</button>
+                            <button class="option-chip" data-value="Vegetables" data-i18n="Vegetables">Vegetables</button>
+                            <input type="text" class="custom-chip-input" placeholder="Other crops..."
+                                aria-label="Previous Crops">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="chat-input-area">
+                <textarea id="user-input" placeholder="e.g., 5 acres black soil in Dharwad..."
+                    data-i18n="[placeholder]input_placeholder"></textarea>
+                <button id="send-btn">
+                    <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+                        <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+                    </svg>
+                </button>
+            </div>
+        </main>
+
+        <main class="dashboard-view planner-view hidden" id="dashboard-view">
+            <div class="dashboard-content" id="dashboard-content">
+                <div class="loader-container">
+                    <div class="loader"></div>
+                    <p id="loading-text" data-i18n="status_analyzing">Analyzing Soil Data...</p>
+                </div>
+            </div>
+
+            <button class="fab-reset" id="reset-btn" title="New Diagram">
+                +
+            </button>
+        </main>
+    </div>
+
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+
+</html>
+
+

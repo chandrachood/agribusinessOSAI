@@ -1,0 +1,77 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#2E7D32">
+    <title>AgriBusiness Video Library</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;600&family=Noto+Sans+Malayalam:wght@400;600&family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
+</head>
+
+<body class="resource-page">
+    <div class="app-container">
+        <header class="app-header">
+            <div class="header-left">
+                <a class="header-nav-btn" href="/" title="Planner">Planner</a>
+                <a class="header-nav-btn active" href="/videos" title="Video Library">Videos</a>
+                <a class="header-nav-btn" href="/startups" title="Startup References">Startups</a>
+                <a class="header-nav-btn" href="/policies" title="Government Schemes">Schemes</a>
+                <div class="logo">&#127793; AgriBusiness OS</div>
+            </div>
+        </header>
+
+        <main class="resource-view">
+            <section class="resource-hero">
+                <h1>Learn Agri-Business</h1>
+                <p>Browse practical videos focused on turning agriculture into a strong business model.</p>
+            </section>
+
+            <section class="video-intro-card schedule-style-card">
+                <h2>Video Library</h2>
+                <p class="video-config-note">Storage file: <code>{{ library_file }}</code></p>
+                <p class="video-config-note">Format: one YouTube URL per line, or <code>Title | URL</code>.</p>
+                <details class="library-editor">
+                    <summary>Edit Video Library In App</summary>
+                    <form class="library-editor-form" method="post" action="/library/videos/save">
+                        <textarea class="library-editor-textarea" name="library_content"
+                            spellcheck="false">{{ library_raw }}</textarea>
+                        <button class="resource-switch-btn" type="submit">Save Video Library</button>
+                    </form>
+                </details>
+                {% if save_success %}
+                <p class="library-save-success">Video library updated.</p>
+                {% endif %}
+            </section>
+
+            {% if videos %}
+            <section class="video-grid">
+                {% for video in videos %}
+                <article class="video-card schedule-style-card">
+                    <div class="video-time-chip">Video {{ loop.index }}</div>
+                    <div class="video-frame-wrap">
+                        <iframe src="{{ video.embed_url }}" title="{{ video.title }}" loading="lazy"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                            allowfullscreen></iframe>
+                    </div>
+                    <div class="video-card-footer">
+                        <h3>{{ video.title }}</h3>
+                        <a class="resource-round-btn" href="{{ video.url }}" target="_blank" rel="noopener noreferrer"
+                            title="Open on YouTube">&#8599;</a>
+                    </div>
+                </article>
+                {% endfor %}
+            </section>
+            {% else %}
+            <section class="video-empty schedule-style-card">
+                <p>No valid YouTube links found in <code>{{ library_file }}</code>.</p>
+                <p>Add links and refresh this page.</p>
+            </section>
+            {% endif %}
+        </main>
+    </div>
+</body>
+
+</html>
+

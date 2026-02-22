@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#2E7D32">
+    <title>Government Schemes Finder</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;600&family=Noto+Sans+Malayalam:wght@400;600&family=Outfit:wght@300;400;600&display=swap"
+        rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+
+<body class="resource-page">
+    <div class="app-container">
+        <header class="app-header">
+            <div class="header-left">
+                <a class="header-nav-btn" href="/" title="Planner">Planner</a>
+                <a class="header-nav-btn" href="/videos" title="Video Library">Videos</a>
+                <a class="header-nav-btn" href="/startups" title="Startup References">Startups</a>
+                <a class="header-nav-btn active" href="/policies" title="Government Schemes">Schemes</a>
+                <div class="logo">&#127793; AgriBusiness OS</div>
+            </div>
+        </header>
+
+        <main class="resource-view">
+            <section class="resource-hero">
+                <h1>Government Schemes Finder</h1>
+                <p>Enter your location and crops to find subsidies, loans, insurance, and other government benefits
+                    with practical steps to apply.</p>
+            </section>
+
+            <section class="video-intro-card schedule-style-card policy-search-card">
+                <h2>Search Inputs</h2>
+                <form class="policy-form" method="post" action="/policies">
+                    <label class="policy-field">
+                        <span>Location (District, State)</span>
+                        <input class="policy-input" type="text" name="location" required
+                            placeholder="e.g., Mysuru, Karnataka" value="{{ form.location }}">
+                    </label>
+
+                    <label class="policy-field">
+                        <span>Crops (comma-separated)</span>
+                        <input class="policy-input" type="text" name="crops" required
+                            placeholder="e.g., paddy, maize, banana" value="{{ form.crops }}">
+                    </label>
+
+                    <label class="policy-field">
+                        <span>Response Language</span>
+                        <select class="policy-input" name="language">
+                            <option value="en" {% if form.language == "en" %}selected{% endif %}>English</option>
+                            <option value="hi" {% if form.language == "hi" %}selected{% endif %}>Hindi</option>
+                            <option value="ml" {% if form.language == "ml" %}selected{% endif %}>Malayalam</option>
+                        </select>
+                    </label>
+
+                    <button class="resource-switch-btn policy-submit-btn" type="submit">Search Government Schemes</button>
+                </form>
+
+                {% if policy_error %}
+                <p class="policy-error">{{ policy_error }}</p>
+                {% endif %}
+            </section>
+
+            {% if policy_report %}
+            <section class="schedule-style-card policy-result-card">
+                <h2>Eligible Schemes Report</h2>
+                <p class="video-config-note"><strong>Location:</strong> {{ form.location }} | <strong>Crops:</strong> {{
+                    form.crops }}</p>
+                <div id="policy-markdown" class="markdown-body policy-markdown">{{ policy_report }}</div>
+            </section>
+            {% endif %}
+
+            {% if policy_sources %}
+            <section class="video-intro-card schedule-style-card">
+                <h2>Source Links</h2>
+                <ul class="policy-source-list">
+                    {% for source in policy_sources %}
+                    <li>
+                        <a href="{{ source.url }}" target="_blank" rel="noopener noreferrer">{{ source.title }}</a>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </section>
+            {% endif %}
+        </main>
+    </div>
+
+    <script>
+        (() => {
+            const markdownNode = document.getElementById('policy-markdown');
+            if (!markdownNode || !window.marked) return;
+            const raw = markdownNode.textContent || '';
+            const sanitized = raw.replace(/<[^>]*>/g, '');
+            markdownNode.innerHTML = marked.parse(sanitized);
+        })();
+    </script>
+</body>
+
+</html>

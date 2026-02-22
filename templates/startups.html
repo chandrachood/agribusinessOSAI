@@ -1,0 +1,80 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#2E7D32">
+    <title>Agri Startup References</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;600&family=Noto+Sans+Malayalam:wght@400;600&family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
+</head>
+
+<body class="resource-page">
+    <div class="app-container">
+        <header class="app-header">
+            <div class="header-left">
+                <a class="header-nav-btn" href="/" title="Planner">Planner</a>
+                <a class="header-nav-btn" href="/videos" title="Video Library">Videos</a>
+                <a class="header-nav-btn active" href="/startups" title="Startup References">Startups</a>
+                <a class="header-nav-btn" href="/policies" title="Government Schemes">Schemes</a>
+                <div class="logo">&#127793; AgriBusiness OS</div>
+            </div>
+        </header>
+
+        <main class="resource-view">
+            <section class="resource-hero">
+                <h1>Agri Startup References</h1>
+                <p>Explore startup examples and understand the leverage each company used to scale.</p>
+            </section>
+
+            <section class="video-intro-card schedule-style-card">
+                <h2>Startup Cards</h2>
+                <p class="video-config-note">Library file: <code>{{ startup_file }}</code></p>
+                <p class="video-config-note">Entry format:</p>
+                <div class="resource-format-example">
+                    <code>Startup Name | Leverage | Description | URL</code>
+                </div>
+                <details class="library-editor">
+                    <summary>Edit Startup Library In App</summary>
+                    <form class="library-editor-form" method="post" action="/library/startups/save">
+                        <textarea class="library-editor-textarea" name="library_content"
+                            spellcheck="false">{{ startup_raw }}</textarea>
+                        <button class="resource-switch-btn" type="submit">Save Startup Library</button>
+                    </form>
+                </details>
+                {% if save_success %}
+                <p class="library-save-success">Startup library updated.</p>
+                {% endif %}
+            </section>
+
+            {% if startup_refs %}
+            <section class="startup-grid">
+                {% for startup in startup_refs %}
+                <article class="startup-card schedule-style-card">
+                    <div class="startup-card-head">
+                        <h3>{{ startup.name }}</h3>
+                        {% if startup.url %}
+                        <a class="resource-round-btn" href="{{ startup.url }}" target="_blank" rel="noopener noreferrer"
+                            title="Open Reference">&#8599;</a>
+                        {% endif %}
+                    </div>
+                    <p class="startup-badge">{{ startup.leverage }}</p>
+                    {% if startup.description %}
+                    <p class="startup-description">{{ startup.description }}</p>
+                    {% endif %}
+                </article>
+                {% endfor %}
+            </section>
+            {% else %}
+            <section class="video-empty schedule-style-card">
+                <p>No startup references found in <code>{{ startup_file }}</code>.</p>
+                <p>Add entries and refresh this page.</p>
+            </section>
+            {% endif %}
+        </main>
+    </div>
+</body>
+
+</html>
+
