@@ -1,6 +1,6 @@
 const translations = {
     en: {
-        app_title: "🌱 AgriBusiness OS",
+        app_title: "🌱 AgriBusiness OS AI",
         greeting_1: "👋 Namaste! I am your AI Agri-Business Partner.",
         greeting_2: "Tell me about your farm (Location, Soil, Water, Budget) and I will build a complete business plan for you.",
         input_placeholder: "e.g., 5 acres black soil in Dharwad...",
@@ -69,7 +69,7 @@ const translations = {
     },
 
     hi: {
-        app_title: "🌱 AgriBusiness OS",
+        app_title: "🌱 AgriBusiness OS AI",
         greeting_1: "👋 नमस्ते! मैं आपका AI कृषि-बिज़नेस साथी हूँ।",
         greeting_2: "मुझे अपने खेत (स्थान, मिट्टी, पानी, बजट) के बारे में बताएं और मैं आपके लिए पूरा बिज़नेस प्लान बनाऊंगा।",
         input_placeholder: "उदा., धारवाड़ में 5 एकड़ काली मिट्टी...",
@@ -138,7 +138,7 @@ const translations = {
     },
 
     ml: {
-        app_title: "🌱 AgriBusiness OS",
+        app_title: "🌱 AgriBusiness OS AI",
         greeting_1: "👋 നമസ്കാരം! ഞാൻ നിങ്ങളുടെ AI അഗ്രി-ബിസിനസ് പങ്കാളിയാണ്.",
         greeting_2: "നിങ്ങളുടെ ഫാം വിവരങ്ങൾ (സ്ഥലം, മണ്ണ്, വെള്ളം, ബജറ്റ്) പറയൂ; ഞാൻ നിങ്ങളുടെ വേണ്ടി ഒരു പൂർണ്ണ ബിസിനസ് പ്ലാൻ തയ്യാറാക്കാം.",
         input_placeholder: "ഉദാ., ധാർവാഡിൽ 5 ഏക്കർ കരിമണ്ണ്...",

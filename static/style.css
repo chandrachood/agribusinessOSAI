@@ -772,6 +772,13 @@ body {
     font-size: 0.9rem;
 }
 
+.library-save-error {
+    margin-top: 8px;
+    color: #9b1c1c;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
 .policy-search-card {
     background: #f7d779;
 }
@@ -978,20 +985,27 @@ body {
 
 .startup-card {
     background: #fff;
-    padding: 14px;
+    padding: 16px;
 }
 
 .startup-card-head {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: space-between;
     gap: 10px;
-    margin-bottom: 10px;
+}
+
+.startup-title-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
 }
 
 .startup-card h3 {
     color: #111;
     font-size: 1.15rem;
+    line-height: 1.2;
 }
 
 .startup-badge {
@@ -1004,12 +1018,90 @@ body {
     border: 1px solid #d8d8d8;
     color: #333;
     font-size: 0.86rem;
-    margin-bottom: 8px;
+    margin-bottom: 0;
+}
+
+.startup-expand {
+    margin-top: 12px;
+    border-top: 1px solid #e6e6e6;
+    padding-top: 10px;
+}
+
+.startup-expand summary {
+    list-style: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    font-weight: 600;
+    color: #202020;
+}
+
+.startup-expand summary::-webkit-details-marker {
+    display: none;
+}
+
+.startup-expand summary::after {
+    content: "+";
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #d8d8d8;
+    background: #f7f7f7;
+    color: #444;
+    font-size: 1rem;
+    flex: 0 0 auto;
+}
+
+.startup-expand[open] summary::after {
+    content: "-";
+}
+
+.startup-expand-body {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding-top: 12px;
 }
 
 .startup-description {
     color: #4a4a4a;
-    line-height: 1.4;
+    line-height: 1.5;
+    margin: 0;
+}
+
+.startup-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.startup-site-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 40px;
+    padding: 0 16px;
+    border-radius: 999px;
+    background: #1d5c35;
+    color: #fff;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.startup-site-btn:hover {
+    background: #174a2b;
+}
+
+.startup-link-note {
+    color: #666;
+    font-size: 0.88rem;
+    margin: 0;
 }
 
 @media (max-width: 640px) {

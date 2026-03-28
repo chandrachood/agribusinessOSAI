@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="theme-color" content="#2E7D32">
-    <title>Agri Startup References</title>
+    <title>AgriBusiness OS AI | Startup References</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;600&family=Noto+Sans+Malayalam:wght@400;600&family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
 </head>
@@ -18,7 +18,7 @@
                 <a class="header-nav-btn" href="/videos" title="Video Library">Videos</a>
                 <a class="header-nav-btn active" href="/startups" title="Startup References">Startups</a>
                 <a class="header-nav-btn" href="/policies" title="Government Schemes">Schemes</a>
-                <div class="logo">&#127793; AgriBusiness OS</div>
+                <div class="logo">&#127793; AgriBusiness OS AI</div>
             </div>
         </header>
 
@@ -30,21 +30,12 @@
 
             <section class="video-intro-card schedule-style-card">
                 <h2>Startup Cards</h2>
-                <p class="video-config-note">Library file: <code>{{ startup_file }}</code></p>
-                <p class="video-config-note">Entry format:</p>
-                <div class="resource-format-example">
-                    <code>Startup Name | Leverage | Description | URL</code>
-                </div>
-                <details class="library-editor">
-                    <summary>Edit Startup Library In App</summary>
-                    <form class="library-editor-form" method="post" action="/library/startups/save">
-                        <textarea class="library-editor-textarea" name="library_content"
-                            spellcheck="false">{{ startup_raw }}</textarea>
-                        <button class="resource-switch-btn" type="submit">Save Startup Library</button>
-                    </form>
-                </details>
+                <p class="video-config-note">Explore standout agri startups and the business leverage behind their growth.</p>
                 {% if save_success %}
                 <p class="library-save-success">Startup library updated.</p>
+                {% endif %}
+                {% if save_error %}
+                <p class="library-save-error">{{ save_error }}</p>
                 {% endif %}
             </section>
 
@@ -53,16 +44,31 @@
                 {% for startup in startup_refs %}
                 <article class="startup-card schedule-style-card">
                     <div class="startup-card-head">
-                        <h3>{{ startup.name }}</h3>
+                        <div class="startup-title-stack">
+                            <h3>{{ startup.name }}</h3>
+                            <p class="startup-badge">{{ startup.leverage }}</p>
+                        </div>
                         {% if startup.url %}
                         <a class="resource-round-btn" href="{{ startup.url }}" target="_blank" rel="noopener noreferrer"
-                            title="Open Reference">&#8599;</a>
+                            title="Visit Website">&#8599;</a>
                         {% endif %}
                     </div>
-                    <p class="startup-badge">{{ startup.leverage }}</p>
-                    {% if startup.description %}
-                    <p class="startup-description">{{ startup.description }}</p>
-                    {% endif %}
+                    <details class="startup-expand">
+                        <summary>Expand details</summary>
+                        <div class="startup-expand-body">
+                            {% if startup.description %}
+                            <p class="startup-description">{{ startup.description }}</p>
+                            {% endif %}
+                            <div class="startup-actions">
+                                {% if startup.url %}
+                                <a class="startup-site-btn" href="{{ startup.url }}" target="_blank"
+                                    rel="noopener noreferrer">Visit website</a>
+                                {% else %}
+                                <p class="startup-link-note">Website not added in this library entry.</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </details>
                 </article>
                 {% endfor %}
             </section>

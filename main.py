@@ -3,17 +3,15 @@ import asyncio
 import json
 import uuid
 import gc
+import importlib
 from datetime import datetime, timezone
+from functools import lru_cache
 from queue import Queue, Empty
 from threading import Thread, Lock
 from time import perf_counter
 from urllib.parse import parse_qs, urlparse
 from flask import Flask, request, jsonify, Response, stream_with_context, render_template, redirect, url_for
 from dotenv import load_dotenv
-
-from src.pipelines.agribusiness_pipeline import run_agribusiness_pipeline
-from src.pipelines.report_followup_pipeline import run_report_followup
-from src.pipelines.government_policy_pipeline import run_government_policy_search
 from database.db import init_app_db, create_tables # Using db.py from reference if applicable, else mock
 
 load_dotenv()
@@ -24,6 +22,45 @@ VIDEO_LIBRARY_FILE = os.path.join(app.root_path, "database", "video_library_urls
 STARTUP_LIBRARY_FILE = os.path.join(
     app.root_path, "database", "startup_reference_library.txt"
 )
+
+
+@lru_cache(maxsize=None)
+def _load_runtime_callable(module_path: str, attr_name: str):
+    try:
+        module = importlib.import_module(module_path)
+    except ModuleNotFoundError as exc:
+        missing = exc.name or module_path
+        raise RuntimeError(
+            f"Missing dependency '{missing}'. Install the project requirements in the active environment before using this feature."
+        ) from exc
+
+    try:
+        return getattr(module, attr_name)
+    except AttributeError as exc:
+        raise RuntimeError(
+            f"Application misconfiguration: '{module_path}.{attr_name}' is unavailable."
+        ) from exc
+
+
+def _get_agribusiness_pipeline():
+    return _load_runtime_callable(
+        "src.pipelines.agribusiness_pipeline",
+        "run_agribusiness_pipeline",
+    )
+
+
+def _get_report_followup_pipeline():
+    return _load_runtime_callable(
+        "src.pipelines.report_followup_pipeline",
+        "run_report_followup",
+    )
+
+
+def _get_government_policy_pipeline():
+    return _load_runtime_callable(
+        "src.pipelines.government_policy_pipeline",
+        "run_government_policy_search",
+    )
 
 
 def _extract_youtube_video_id(url: str) -> str | None:
@@ -93,7 +130,8 @@ def _parse_video_line(line: str, index: int) -> dict | None:
     }
 
 
-def load_video_library(file_path: str = VIDEO_LIBRARY_FILE) -> list[dict]:
+def load_video_library(file_path: str | None = None) -> list[dict]:
+    file_path = file_path or VIDEO_LIBRARY_FILE
     videos = []
     if not os.path.exists(file_path):
         return videos
@@ -161,7 +199,8 @@ def _parse_startup_line(line: str, index: int) -> dict | None:
     }
 
 
-def load_startup_library(file_path: str = STARTUP_LIBRARY_FILE) -> list[dict]:
+def load_startup_library(file_path: str | None = None) -> list[dict]:
+    file_path = file_path or STARTUP_LIBRARY_FILE
     startups = []
     if not os.path.exists(file_path):
         return startups
@@ -183,12 +222,14 @@ def index():
 def videos():
     video_items = load_video_library()
     saved = request.args.get("saved") == "1"
+    save_error = str(request.args.get("error", "")).strip()
     return render_template(
         "videos.html",
         videos=video_items,
         library_file="database/video_library_urls.txt",
         library_raw=read_library_text(VIDEO_LIBRARY_FILE),
         save_success=saved,
+        save_error=save_error,
     )
 
 
@@ -196,12 +237,14 @@ def videos():
 def startups():
     startup_items = load_startup_library()
     saved = request.args.get("saved") == "1"
+    save_error = str(request.args.get("error", "")).strip()
     return render_template(
         "startups.html",
         startup_refs=startup_items,
         startup_file="database/startup_reference_library.txt",
         startup_raw=read_library_text(STARTUP_LIBRARY_FILE),
         save_success=saved,
+        save_error=save_error,
     )
 
 
@@ -224,24 +267,28 @@ def policies():
         if not form["location"] or not form["crops"]:
             policy_error = "Please enter both location and crops."
         else:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
             try:
-                result = loop.run_until_complete(
-                    run_government_policy_search(
-                        location=form["location"],
-                        crops=form["crops"],
-                        language=form["language"],
+                run_government_policy_search = _get_government_policy_pipeline()
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                try:
+                    result = loop.run_until_complete(
+                        run_government_policy_search(
+                            location=form["location"],
+                            crops=form["crops"],
+                            language=form["language"],
+                        )
                     )
-                )
-                policy_report = result.get("report_markdown", "")
-                policy_sources = result.get("sources", [])
+                    policy_report = result.get("report_markdown", "")
+                    policy_sources = result.get("sources", [])
+                finally:
+                    _graceful_close_loop(loop)
+            except RuntimeError as e:
+                policy_error = str(e)
             except Exception as e:
                 import traceback
                 traceback.print_exc()
                 policy_error = str(e)
-            finally:
-                _graceful_close_loop(loop)
 
     return render_template(
         "policies.html",
@@ -259,6 +306,11 @@ def save_video_library():
         write_library_text(VIDEO_LIBRARY_FILE, content)
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
+    except OSError:
+        app.logger.exception("Failed to save video library: %s", VIDEO_LIBRARY_FILE)
+        return redirect(
+            url_for("videos", error="Unable to save video library. Check file permissions.")
+        )
     return redirect(url_for("videos", saved=1))
 
 
@@ -269,6 +321,14 @@ def save_startup_library():
         write_library_text(STARTUP_LIBRARY_FILE, content)
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
+    except OSError:
+        app.logger.exception("Failed to save startup library: %s", STARTUP_LIBRARY_FILE)
+        return redirect(
+            url_for(
+                "startups",
+                error="Unable to save startup library. Check file permissions.",
+            )
+        )
     return redirect(url_for("startups", saved=1))
 # Basic config
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-key')
@@ -374,6 +434,7 @@ def _run_job_background(job_id, user_input, language='en'):
     _trace(job_id, "job_runner_started", language=language, input_chars=len(user_input or ""))
 
     try:
+        run_agribusiness_pipeline = _get_agribusiness_pipeline()
         result = loop.run_until_complete(
             run_agribusiness_pipeline(user_input, progress_cb, language=language)
         )
@@ -451,6 +512,11 @@ def create_plan():
     
     if not user_input:
         return jsonify({"error": "message is required"}), 400
+
+    try:
+        _get_agribusiness_pipeline()
+    except RuntimeError as e:
+        return jsonify({"error": str(e)}), 500
         
     job_id = str(uuid.uuid4())
     JOB_QUEUES[job_id] = Queue()
@@ -574,6 +640,7 @@ def followup_question():
     asyncio.set_event_loop(loop)
 
     try:
+        run_report_followup = _get_report_followup_pipeline()
         answer = loop.run_until_complete(
             run_report_followup(
                 report_markdown=job["report"],

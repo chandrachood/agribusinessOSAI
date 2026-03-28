@@ -1,10 +1,9 @@
-# Agri startup reference cards
-# Format:
-# Startup Name | Leverage | Description | URL
-# You can also omit Description or URL.
+# Agri Startup Reference Library
+# Format: Startup Name | Leverage | Description | URL (optional)
 
-DeHaat | Full-stack farmer platform | Integrates input supply, advisory, and market linkage for smallholders. | https://www.dehaat.com/
-Ninjacart | Supply chain and distribution | Uses tech-enabled farm-to-retail logistics to reduce middle-layer inefficiency. | https://www.ninjacart.com/
-CropIn | Farm intelligence and data | Leverages digital farm records and analytics for planning, compliance, and traceability. | https://www.cropin.com/
-AgNext | Quality assessment with AI | Applies computer vision and data science for objective grading and quality checks. | https://agnext.com/
-Gramophone | Advisory plus input commerce | Combines localized crop advisory with input recommendations and procurement support. | https://gramophone.in/
+DeHaat | Full-stack farmer platform | Combines advisory, input commerce, and market linkage for small and medium farmers. | https://dehaat.in/
+Ninjacart | Supply chain network | Uses demand aggregation and logistics to connect producers with organized buyers. | https://ninjacart.com/
+AgroStar | D2C agri commerce | Blends agronomy guidance with mobile-first sales of farm inputs. | https://corporate.agrostar.in/
+Bijak | B2B agri trading | Improves trust, payments, and repeat trade between buyers, sellers, and commission agents. | https://www.bijak.in/
+WayCool | Demand-led procurement | Connects growers to retail and food businesses through integrated sourcing and distribution. | https://waycool.in/
+CropIn | Farm intelligence software | Uses farm data, traceability, and analytics to support large-scale agri operations. | https://www.cropin.com/

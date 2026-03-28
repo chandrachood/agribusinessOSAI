@@ -21,3 +21,8 @@ env/
 Thumbs.db
 .vscode/
 .idea/
+
+# Node / browser test artifacts
+node_modules/
+playwright-report/
+test-results/

@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="theme-color" content="#2E7D32">
-    <title>AgriBusiness Video Library</title>
+    <title>AgriBusiness OS AI | Video Library</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;600&family=Noto+Sans+Malayalam:wght@400;600&family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
 </head>
@@ -18,7 +18,7 @@
                 <a class="header-nav-btn active" href="/videos" title="Video Library">Videos</a>
                 <a class="header-nav-btn" href="/startups" title="Startup References">Startups</a>
                 <a class="header-nav-btn" href="/policies" title="Government Schemes">Schemes</a>
-                <div class="logo">&#127793; AgriBusiness OS</div>
+                <div class="logo">&#127793; AgriBusiness OS AI</div>
             </div>
         </header>
 
@@ -30,18 +30,12 @@
 
             <section class="video-intro-card schedule-style-card">
                 <h2>Video Library</h2>
-                <p class="video-config-note">Storage file: <code>{{ library_file }}</code></p>
-                <p class="video-config-note">Format: one YouTube URL per line, or <code>Title | URL</code>.</p>
-                <details class="library-editor">
-                    <summary>Edit Video Library In App</summary>
-                    <form class="library-editor-form" method="post" action="/library/videos/save">
-                        <textarea class="library-editor-textarea" name="library_content"
-                            spellcheck="false">{{ library_raw }}</textarea>
-                        <button class="resource-switch-btn" type="submit">Save Video Library</button>
-                    </form>
-                </details>
+                <p class="video-config-note">Browse practical video references curated for agri-business learning.</p>
                 {% if save_success %}
                 <p class="library-save-success">Video library updated.</p>
+                {% endif %}
+                {% if save_error %}
+                <p class="library-save-error">{{ save_error }}</p>
                 {% endif %}
             </section>
 

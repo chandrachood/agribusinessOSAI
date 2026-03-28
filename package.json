@@ -1,0 +1,28 @@
+{
+  "name": "agri-app",
+  "version": "1.0.0",
+  "description": "**The Multilingual Agentic Ecosystem for Precision Agribusiness**",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test:backend": "venv\\Scripts\\python.exe -m unittest test_resource_libraries.py test_app_flows.py",
+    "test:e2e": "playwright test",
+    "test:e2e:headed": "playwright test --headed"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/chandrachood/agribusinessOSAI.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/chandrachood/agribusinessOSAI/issues"
+  },
+  "homepage": "https://github.com/chandrachood/agribusinessOSAI#readme",
+  "devDependencies": {
+    "@playwright/test": "^1.58.2"
+  }
+}
