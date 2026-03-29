@@ -44,6 +44,10 @@ Technical Architecture
 * Backend: Python-based microservices architecture
 * Future Expansion: Native mobile application (iOS and Android)
 
+  Architecture
+
+  
+
 
 Licensing
 
@@ -54,9 +58,9 @@ This software is the exclusive intellectual property of Chandrachood and the Agr
 
 Team
 
-Chandrachood – Founder and Lead Architect
+Chandrachood – Product Manager / Developer  
 Pritpal S Arora – Strategy and Operations
-Nithya Kannan – Data Science
-Lekha – Product Design
+Nithya Kannan – Product Design 
+Lekha – Lead Data Scientist / Developer 
 
 Built for the future of sustainable, data-driven farming.
